@@ -13,11 +13,19 @@ pipeline {
   }
 
   stages {
+    stage('🧹 Clean Workspace') {
+      steps {
+        echo 'Cleaning workspace to remove old Git config...'
+        deleteDir()
+      }
+    }
+
     stage('📥 Clone Code from GitHub') {
       steps {
-        git branch: 'main',
+        git branch: 'master',
             credentialsId: 'github-token',
             url: 'https://github.com/SAISREEMUDHUNURII/amazon-prime-video-devsecops.git'
+        sh 'git remote -v' // Optional debug step
       }
     }
 
@@ -52,15 +60,29 @@ pipeline {
         }
       }
     }
+
+    stage('🚀 Trigger CD Pipeline') {
+      steps {
+        script {
+          try {
+            echo "🔁 Trying to trigger CD pipeline 'primevideo-cd'..."
+            build job: 'primevideo-cd', wait: false
+            echo "✅ CD pipeline triggered successfully."
+          } catch (err) {
+            echo "⚠️ CD pipeline 'primevideo-cd' not found or not configured yet."
+            echo "ℹ️ CI pipeline completed. Once CD is created, this stage will trigger it automatically."
+          }
+        }
+      }
+    }
   }
 
   post {
     success {
-      echo '✅ CI Pipeline completed successfully.'
-      build job: 'primevideo-cd'
+      echo '✅ CI pipeline completed successfully.'
     }
     failure {
-      echo '❌ CI Pipeline failed.'
+      echo '❌ CI pipeline failed. Check console output for more details.'
     }
   }
 }
