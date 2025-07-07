@@ -10,11 +10,16 @@ pipeline {
     stage('🛑 Stop & Remove Old Container') {
       steps {
         script {
-          sh """
-            docker ps -q --filter "name=$CONTAINER_NAME" | grep -q . && \
-            docker stop $CONTAINER_NAME && \
-            docker rm $CONTAINER_NAME || echo "No existing container to stop."
-          """
+          def containerExists = sh(script: "docker ps -a -q --filter name=$CONTAINER_NAME", returnStdout: true).trim()
+          if (containerExists) {
+            sh """
+              docker ps -q --filter "name=$CONTAINER_NAME" | grep -q . && \
+              docker stop $CONTAINER_NAME && \
+              docker rm $CONTAINER_NAME || echo "No existing container to stop."
+            """
+          } else {
+            echo "✅ No existing container to stop."
+          }
         }
       }
     }
@@ -22,14 +27,14 @@ pipeline {
     stage('📥 Pull Docker Image from DockerHub') {
       steps {
         echo "Pulling latest image: $DOCKER_IMAGE"
-        sh 'docker pull $DOCKER_IMAGE'
+        sh "docker pull $DOCKER_IMAGE"
       }
     }
 
     stage('🚀 Run New Docker Container') {
       steps {
         echo "Running container: $CONTAINER_NAME"
-        sh 'docker run -d --name $CONTAINER_NAME --restart unless-stopped -p 3001:3000 $DOCKER_IMAGE'
+        sh "docker run -d --name $CONTAINER_NAME --restart unless-stopped -p 3001:3000 $DOCKER_IMAGE"
       }
     }
   }
